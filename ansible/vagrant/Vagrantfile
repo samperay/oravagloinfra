@@ -1,0 +1,34 @@
+# Define the number of master and worker nodes
+# If this number is changed, remember to update setup-hosts.sh script with the new hosts IP details in /etc/hosts of each VM.
+NUM_ANSIBLE_NODES = 4
+
+IP_NW = "192.168.56."
+MASTER_IP_START = 10
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+  config.vm.box_check_update = false
+
+  # Provision Ansible Control Node
+  (1..NUM_ANSIBLE_NODES).each do |i|
+      config.vm.define "ansible-#{i}" do |node|
+        # Name shown in the GUI
+        node.vm.provider "virtualbox" do |vb|
+            vb.name = "ansible-#{i}"
+            vb.memory = 600
+            vb.cpus = 1
+        end
+
+        node.vm.hostname = "ansible-#{i}"
+        node.vm.network :private_network, ip: IP_NW + "#{MASTER_IP_START + i}"
+        node.vm.network "forwarded_port", guest: 22, host: "#{2710 + i}"
+        node.vm.provision "setup-hosts", :type => "shell", :path => "centos/setup-hosts.sh"
+        node.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "~/.ssh/authorized_keys"
+   end
+
+  end
+end
